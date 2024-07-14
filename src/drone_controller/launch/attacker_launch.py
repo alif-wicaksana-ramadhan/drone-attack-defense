@@ -10,11 +10,11 @@ def generate_launch_description():
             arguments=['attacker1'],
             output='screen',
         ),
-        Node(
-            package='drone_controller',
-            executable='attacker',
-            name='sim',
-            arguments=['attacker2'],
-            output='screen',
-        ),
+        # Node(
+        #     package='drone_controller',
+        #     executable='attacker',
+        #     name='sim',
+        #     arguments=['attacker2'],
+        #     output='screen',
+        # ),
     ])

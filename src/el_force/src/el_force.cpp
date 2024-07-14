@@ -1,4 +1,5 @@
 #include <cmath>
+#include <iostream>
 #include "el_force/el_force.hpp"
 
 ElForce::ElForce(double k, double ownCharge, double enemyCharge, double targetCharge) : k_(k), ownCharge_(ownCharge), enemyCharge_(enemyCharge), targetCharge_(targetCharge)
@@ -21,18 +22,37 @@ void ElForce::clearEnemies()
     enemies_.clear();
 }
 
-double ElForce::calculateDistance(std::vector<double> p1, std::vector<double> p2)
+double ElForce::calculateNorm(std::vector<double> vec)
 {
     double sum = 0.0;
-    for (int i = 0; i < (int)p1.size(); ++i)
+    for (int i = 0; i < (int)vec.size(); ++i)
     {
-        sum += std::pow(p2[i] - p1[i], 2);
+        sum += std::pow(vec[i], 2);
     }
     return std::sqrt(sum);
 }
 
-double ElForce::calculateForce(std::vector<double> dronePos)
+std::vector<double> ElForce::calculateForce(std::vector<double> dronePos)
 {
-    double d = calculateDistance(dronePos, target_);
-    return k_ * ownCharge_ * targetCharge_ / (d * d);
+    if (dronePos.size() != target_.size())
+    {
+        std::cout << "NOT MATCH" << std::endl;
+    }
+
+    std::vector<double> vec, forceVec;
+    for (int i = 0; i < dronePos.size(); i++)
+    {
+        double step = target_[i] - dronePos[i];
+        vec.push_back(step);
+    }
+
+    double norm = calculateNorm(vec);
+    double force = k_ * ownCharge_ * targetCharge_ / (norm * norm);
+
+    for (int i = 0; i < dronePos.size(); i++)
+    {
+        forceVec.push_back((vec[i] / norm) * force);
+    }
+
+    return forceVec;
 }

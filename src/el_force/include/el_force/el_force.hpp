@@ -16,8 +16,8 @@ public:
     void setTarget(std::vector<double> targetPos);
     void addEnemy(std::vector<double> enemyPos);
     void clearEnemies();
-    double calculateDistance(std::vector<double> p1, std::vector<double> p2);
-    double calculateForce(std::vector<double> dronePos);
+    double calculateNorm(std::vector<double> vec);
+    std::vector<double> calculateForce(std::vector<double> dronePos);
 };
 
 #endif

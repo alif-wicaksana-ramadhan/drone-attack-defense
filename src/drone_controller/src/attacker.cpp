@@ -21,37 +21,54 @@ private:
   void pose_callback_(const geometry_msgs::msg::Pose::SharedPtr msg)
   {
     pose_ = *msg;
-    RCLCPP_INFO(this->get_logger(), "pose: %f, %f, %f", pose_.position.x, pose_.position.y, pose_.position.z);
+    // RCLCPP_INFO(this->get_logger(), "pose: %f, %f, %f", pose_.position.x, pose_.position.y, pose_.position.z);
   }
 
   void target_callback_(const geometry_msgs::msg::Point32::SharedPtr msg)
   {
     target_ = *msg;
+    // RCLCPP_INFO(this->get_logger(), "target: %f, %f, %f", target_.x, target_.y, target_.z);
     std::vector<double> target_pos = {target_.x, target_.y, target_.z};
     el_force_.setTarget(target_pos);
   }
 
   void main_loop_()
   {
+    geometry_msgs::msg::Twist msg;
+
     std::vector<double> pos = {pose_.position.x, pose_.position.y, pose_.position.z};
-    el_force_.addEnemy(pos);
-    double force = el_force_.calculateForce(pos);
-    RCLCPP_INFO(this->get_logger(), "Calculated force: %f", force);
+    std::vector<double> forceVec = el_force_.calculateForce(pos);
+
+    for (int i = 0; i < (int)forceVec.size(); i++)
+    {
+      if (forceVec[i] > 1.0)
+      {
+        forceVec[i] = 1.0;
+      }
+      else if (forceVec[i] < -1.0)
+      {
+        forceVec[i] = -1.0;
+      }
+    }
+
+    msg.linear.x = forceVec[0];
+    msg.linear.y = forceVec[1];
+    msg.linear.z = forceVec[2];
+
+    cmd_vel_pub_->publish(msg);
+
+    RCLCPP_INFO(this->get_logger(), "Calculated force: %f, %f, %f", forceVec[0], forceVec[1], forceVec[2]);
   }
 
 public:
-  Attacker(const std::string &drone_name) : Node("attacker"), drone_name_(drone_name), el_force_(1.0, 1.0, 1.0, 1.0)
+  Attacker(const std::string &drone_name) : Node("attacker"), drone_name_(drone_name), el_force_(10.0, 10.0, 10.0, 10.0)
   {
     std::string cmd_vel_topic_ = "/" + drone_name_ + "/cmd_vel";
     std::string pose_topic_ = "/" + drone_name_ + "/pose";
 
-    target_.x = pose_.position.x;
-    target_.y = pose_.position.y;
-    target_.z = pose_.position.z;
-
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_, 10);
     pose_sub_ = this->create_subscription<geometry_msgs::msg::Pose>(pose_topic_, 10, std::bind(&Attacker::pose_callback_, this, std::placeholders::_1));
-    this->create_subscription<geometry_msgs::msg::Point32>("/target", 10, std::bind(&Attacker::target_callback_, this, std::placeholders::_1));
+    target_sub_ = this->create_subscription<geometry_msgs::msg::Point32>("/target", 10, std::bind(&Attacker::target_callback_, this, std::placeholders::_1));
 
     timer_ = this->create_wall_timer(std::chrono::milliseconds(100), std::bind(&Attacker::main_loop_, this));
   }
